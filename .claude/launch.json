@@ -1,0 +1,12 @@
+﻿{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kerf",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "Start-KerfStudio.ps1", "-NoBrowser"],
+      "port": 8787
+    }
+  ]
+}
+

@@ -1,0 +1,13 @@
+# Third-party design files (licensed by their creators, and large)
+Models/
+*.lac
+
+# Local tool settings
+.claude/settings.local.json
+
+# OS / editor clutter
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+*.log

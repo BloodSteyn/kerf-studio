@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kerf Studio</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23ff6a3d'/%3E%3Cpath d='M13 4L6 13.5h5l-1 6.5 7-9.5h-5z' fill='white'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-select" viewBox="0 0 24 24"><path d="M5 3l6.5 17 2.3-7.2L21 10.5z"/></symbol>
+    <symbol id="i-rect" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="1.5"/></symbol>
+    <symbol id="i-ellipse" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="7"/></symbol>
+    <symbol id="i-text" viewBox="0 0 24 24"><path d="M5 7V4.5h14V7M12 4.5v15M9 19.5h6"/></symbol>
+    <symbol id="i-pan" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-2.5 2.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9.5" r="1.8"/><path d="M21 16l-5-5-9 9"/></symbol>
+    <symbol id="i-import" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M4 15v3.5A2.5 2.5 0 006.5 21h11a2.5 2.5 0 002.5-2.5V15"/></symbol>
+    <symbol id="i-export" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 15v3.5A2.5 2.5 0 006.5 21h11a2.5 2.5 0 002.5-2.5V15"/></symbol>
+    <symbol id="i-new" viewBox="0 0 24 24"><path d="M14 3H6.5A2.5 2.5 0 004 5.5v13A2.5 2.5 0 006.5 21h11a2.5 2.5 0 002.5-2.5V9zM14 3v6h6M12 12v6M9 15h6"/></symbol>
+    <symbol id="i-open" viewBox="0 0 24 24"><path d="M3 7.5A2.5 2.5 0 015.5 5H9l2 2h7.5A2.5 2.5 0 0121 9.5v8a2.5 2.5 0 01-2.5 2.5h-13A2.5 2.5 0 013 17.5z"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M5.5 3H16l5 5v10.5a2.5 2.5 0 01-2.5 2.5h-13A2.5 2.5 0 013 18.5v-13A2.5 2.5 0 015.5 3zM7.5 3v5h8M7.5 21v-7h9v7"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A10 10 0 0112 5c6.4 0 10 7 10 7a17 17 0 01-3.2 4M6.6 6.6C3.7 8.4 2 12 2 12s3.6 7 10 7a9.8 9.8 0 005.4-1.6M9.9 9.9a3 3 0 004.2 4.2"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 2v5M15 2v5M6 7h12v4a6 6 0 01-12 0zM12 17v5"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8M5.5 9v11h13V9"/></symbol>
+    <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="4.5" y="11" width="15" height="10" rx="2"/><path d="M8 11V7.5a4 4 0 017.6-1.8"/></symbol>
+    <symbol id="i-frame" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5l12.5 7.5L7 19.5z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 4.5h3v15H7zM14 4.5h3v15h-3z"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="5.5" y="5.5" width="13" height="13" rx="2"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 6.5h16M9 6.5V4h6v2.5M6.5 6.5l1 14h9l1-14"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5M4 9h10.5a5.5 5.5 0 010 11H11"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5M20 9H9.5a5.5 5.5 0 000 11H13"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="12" height="12" rx="2"/><path d="M15.5 8.5V5.5a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2h3"/></symbol>
+    <symbol id="i-center" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="8.5" y="8.5" width="7" height="7" rx="1"/></symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2.5L4.5 13.5H11L10 21.5l8.5-11H12z"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><path d="M9 7a3 3 0 016 0v1M9 17a3 3 0 006 0v-1M12 10v4"/></symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24"><path d="M5 17l5-5-5-5M12 19h7"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-fit" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <!-- ============ Top bar ============ -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo"><svg class="icon"><use href="#i-zap"/></svg></div>
+      <div class="brand-text"><b>Kerf</b><span>Studio</span></div>
+      <span class="machine-tag" id="machineTag">Ortur LM2 Pro</span>
+    </div>
+    <div class="tb-group">
+      <button class="btn ghost" data-act="new" title="New project"><svg class="icon"><use href="#i-new"/></svg></button>
+      <button class="btn ghost" data-act="open" title="Open project (Ctrl+O)"><svg class="icon"><use href="#i-open"/></svg></button>
+      <button class="btn ghost" data-act="save" title="Save project (Ctrl+S)"><svg class="icon"><use href="#i-save"/></svg></button>
+      <span class="sep"></span>
+      <button class="btn ghost labeled" data-act="import" title="Import LAC, SVG, DXF or image (Ctrl+I)"><svg class="icon"><use href="#i-import"/></svg><span>Import</span></button>
+      <button class="btn ghost labeled" data-act="export" title="Save G-code file"><svg class="icon"><use href="#i-export"/></svg><span>G-code</span></button>
+      <span class="sep"></span>
+      <button class="btn ghost" data-act="undo" title="Undo (Ctrl+Z)"><svg class="icon"><use href="#i-undo"/></svg></button>
+      <button class="btn ghost" data-act="redo" title="Redo (Ctrl+Y)"><svg class="icon"><use href="#i-redo"/></svg></button>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn toggle" id="btnPreview" data-act="preview" title="Toggle toolpath preview (P)"><svg class="icon"><use href="#i-eye"/></svg><span>Preview</span></button>
+    <div class="conn" id="conn"><span class="dot"></span><span id="connState">Offline</span></div>
+    <button class="btn primary" id="btnConnect" data-act="connect"><svg class="icon"><use href="#i-plug"/></svg><span>Connect</span></button>
+    <button class="btn ghost" data-act="settings" title="Machine settings"><svg class="icon"><use href="#i-sliders"/></svg></button>
+    <button class="btn ghost" data-act="theme" title="Toggle theme"><svg class="icon" id="themeIcon"><use href="#i-moon"/></svg></button>
+  </header>
+
+  <!-- ============ Properties bar ============ -->
+  <div class="propbar" id="propbar">
+    <div class="pf"><label for="pX">X</label><input id="pX" type="number" step="0.1"><span class="u">mm</span></div>
+    <div class="pf"><label for="pY">Y</label><input id="pY" type="number" step="0.1"><span class="u">mm</span></div>
+    <div class="pf"><label for="pW">W</label><input id="pW" type="number" step="0.1" min="0.1"><span class="u">mm</span></div>
+    <button class="btn ghost sm lock on" id="pLock" title="Lock aspect ratio"><svg class="icon"><use href="#i-lock"/></svg></button>
+    <div class="pf"><label for="pH">H</label><input id="pH" type="number" step="0.1" min="0.1"><span class="u">mm</span></div>
+    <div class="pf"><label for="pR">∠</label><input id="pR" type="number" step="1"><span class="u">°</span></div>
+    <span class="sep"></span>
+    <div class="pf"><label for="pLayer">Layer</label><select id="pLayer"></select></div>
+    <div class="img-opts" id="imgOpts" hidden>
+      <span class="sep"></span>
+      <div class="pf"><label for="iDither">Mode</label>
+        <select id="iDither">
+          <option value="jarvis">Jarvis dither</option>
+          <option value="floyd">Floyd–Steinberg</option>
+          <option value="threshold">Threshold</option>
+          <option value="grayscale">Grayscale</option>
+        </select>
+      </div>
+      <div class="pf range"><label for="iBright">Bright</label><input id="iBright" type="range" min="-100" max="100" value="0"></div>
+      <div class="pf range"><label for="iContrast">Contrast</label><input id="iContrast" type="range" min="-100" max="100" value="0"></div>
+      <label class="check"><input type="checkbox" id="iInvert"> Invert</label>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn ghost sm" data-act="center" title="Center on bed"><svg class="icon"><use href="#i-center"/></svg></button>
+    <button class="btn ghost sm" data-act="duplicate" title="Duplicate (Ctrl+D)"><svg class="icon"><use href="#i-copy"/></svg></button>
+    <button class="btn ghost sm danger-h" data-act="delete" title="Delete (Del)"><svg class="icon"><use href="#i-trash"/></svg></button>
+  </div>
+
+  <!-- ============ Tools ============ -->
+  <nav class="toolbar" aria-label="Tools">
+    <button class="tool active" data-tool="select" title="Select (V)"><svg class="icon"><use href="#i-select"/></svg></button>
+    <button class="tool" data-tool="rect" title="Rectangle (R)"><svg class="icon"><use href="#i-rect"/></svg></button>
+    <button class="tool" data-tool="ellipse" title="Ellipse (E)"><svg class="icon"><use href="#i-ellipse"/></svg></button>
+    <button class="tool" data-tool="text" title="Text (T)"><svg class="icon"><use href="#i-text"/></svg></button>
+    <button class="tool" data-tool="pan" title="Pan (H or hold Space)"><svg class="icon"><use href="#i-pan"/></svg></button>
+    <span class="tsep"></span>
+    <button class="tool" data-act="import" title="Import file"><svg class="icon"><use href="#i-image"/></svg></button>
+  </nav>
+
+  <!-- ============ Canvas ============ -->
+  <main class="stage" id="stage">
+    <canvas id="canvas"></canvas>
+    <div class="drop-hint" id="dropHint"><svg class="icon"><use href="#i-import"/></svg>Drop LAC, SVG, DXF, PNG or JPG</div>
+    <div class="zoom" aria-label="Zoom">
+      <button data-act="zoomOut" title="Zoom out"><svg class="icon"><use href="#i-minus"/></svg></button>
+      <span id="zoomLabel">100%</span>
+      <button data-act="zoomIn" title="Zoom in"><svg class="icon"><use href="#i-plus"/></svg></button>
+      <button data-act="zoomFit" title="Fit work area (F)"><svg class="icon"><use href="#i-fit"/></svg></button>
+    </div>
+    <div class="empty-state" id="emptyState">
+      <h2>Start a design</h2>
+      <p>Import a Bambu .lac project, SVG, DXF or photo, or draw with the tools on the left.</p>
+      <button class="btn primary" data-act="import"><svg class="icon"><use href="#i-import"/></svg><span>Import file</span></button>
+    </div>
+  </main>
+
+  <!-- ============ Sidebar ============ -->
+  <aside class="sidebar">
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="cuts"><svg class="icon"><use href="#i-sliders"/></svg>Cuts</button>
+      <button class="tab" data-tab="laser"><svg class="icon"><use href="#i-zap"/></svg>Laser</button>
+      <button class="tab" data-tab="console"><svg class="icon"><use href="#i-terminal"/></svg>Console</button>
+    </div>
+
+    <section class="panel" data-panel="cuts">
+      <div class="panel-h"><h3>Layers</h3><button class="btn sm" data-act="addLayer"><svg class="icon"><use href="#i-plus"/></svg><span>Add</span></button></div>
+      <div class="layer-list" id="layerList"></div>
+      <div class="card" id="layerEditor"></div>
+      <div class="card">
+        <div class="card-h"><h3>Job estimate</h3><button class="btn sm" data-act="estimate">Calculate</button></div>
+        <div id="estOut" class="est muted">Press Calculate or Preview to estimate time.</div>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="laser" hidden>
+      <div class="card">
+        <div class="card-h"><h3>Machine</h3><span class="chip" id="stateChip">Offline</span></div>
+        <div class="pos">
+          <div><span>X</span><b id="posX">—</b></div>
+          <div><span>Y</span><b id="posY">—</b></div>
+        </div>
+        <div class="small muted" id="fsInfo">Connect your laser over USB to begin.</div>
+        <p class="note warn" id="serialWarn" hidden>This browser can't talk to USB serial devices. Open Kerf Studio in Chrome or Edge on a desktop.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h3>Move</h3></div>
+        <div class="jog">
+          <div class="jogpad">
+            <button data-jog="-1,1" class="mc" title="Jog ↖"><svg class="icon" style="transform:rotate(-45deg)"><use href="#i-arrow"/></svg></button>
+            <button data-jog="0,1" class="mc" title="Jog +Y"><svg class="icon"><use href="#i-arrow"/></svg></button>
+            <button data-jog="1,1" class="mc" title="Jog ↗"><svg class="icon" style="transform:rotate(45deg)"><use href="#i-arrow"/></svg></button>
+            <button data-jog="-1,0" class="mc" title="Jog −X"><svg class="icon" style="transform:rotate(-90deg)"><use href="#i-arrow"/></svg></button>
+            <button data-act="goOrigin" class="mc center" title="Go to 0,0"><svg class="icon"><use href="#i-target"/></svg></button>
+            <button data-jog="1,0" class="mc" title="Jog +X"><svg class="icon" style="transform:rotate(90deg)"><use href="#i-arrow"/></svg></button>
+            <button data-jog="-1,-1" class="mc" title="Jog ↙"><svg class="icon" style="transform:rotate(-135deg)"><use href="#i-arrow"/></svg></button>
+            <button data-jog="0,-1" class="mc" title="Jog −Y"><svg class="icon" style="transform:rotate(180deg)"><use href="#i-arrow"/></svg></button>
+            <button data-jog="1,-1" class="mc" title="Jog ↘"><svg class="icon" style="transform:rotate(135deg)"><use href="#i-arrow"/></svg></button>
+          </div>
+          <div class="jog-side">
+            <span class="lbl">Step</span>
+            <div class="seg" id="jogSteps">
+              <button data-step="0.1">0.1</button><button data-step="1">1</button><button data-step="10">10</button><button data-step="50">50</button>
+            </div>
+            <span class="lbl">Speed</span>
+            <div class="inline-num"><input id="jogFeed" type="number" min="100" max="10000" step="100"><span class="u">mm/min</span></div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn mc" data-act="home"><svg class="icon"><use href="#i-home"/></svg><span>Home</span></button>
+          <button class="btn mc" data-act="unlock"><svg class="icon"><use href="#i-unlock"/></svg><span>Unlock</span></button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h3>Job</h3><span class="small muted" id="jobEst"></span></div>
+        <label class="field-v"><span class="lbl">Start from</span>
+          <select id="jobOrigin">
+            <option value="absolute">Absolute coordinates</option>
+            <option value="current">Current position (job bottom-left)</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="returnHome"> Return to origin when finished</label>
+        <div class="run">
+          <button class="btn mc" data-act="frame" title="Trace the job outline"><svg class="icon"><use href="#i-frame"/></svg><span>Frame</span></button>
+          <button class="btn primary mc" data-act="start"><svg class="icon"><use href="#i-play"/></svg><span>Start</span></button>
+          <button class="btn mc" data-act="pause" id="btnPause"><svg class="icon"><use href="#i-pause"/></svg><span>Pause</span></button>
+          <button class="btn danger mc" data-act="stop"><svg class="icon"><use href="#i-stop"/></svg><span>Stop</span></button>
+        </div>
+        <div class="progress"><div id="progBar"></div></div>
+        <div class="small muted" id="progText">No job running</div>
+      </div>
+    </section>
+
+    <section class="panel console-panel" data-panel="console" hidden>
+      <div class="quick">
+        <button class="btn sm mc" data-cmd="$$">$$ Settings</button>
+        <button class="btn sm mc" data-cmd="$I">$I Info</button>
+        <button class="btn sm mc" data-cmd="$G">$G State</button>
+        <button class="btn sm mc" data-act="softReset">Reset</button>
+        <button class="btn sm ghost" data-act="clearLog">Clear</button>
+      </div>
+      <div class="log" id="log"></div>
+      <form class="cmd" id="cmdForm" autocomplete="off">
+        <input id="cmdInput" class="mc" placeholder="Type a G-code or $ command…" spellcheck="false">
+        <button class="btn primary sm mc" type="submit">Send</button>
+      </form>
+    </section>
+  </aside>
+
+  <!-- ============ Status bar ============ -->
+  <footer class="statusbar">
+    <span id="sbCursor">X 0.00  Y 0.00</span>
+    <span id="sbSel"></span>
+    <div class="spacer"></div>
+    <span id="sbJob"></span>
+    <span id="sbMachine">Offline</span>
+  </footer>
+</div>
+
+<!-- ============ Dialogs ============ -->
+<dialog id="dlgSettings" class="dlg">
+  <form method="dialog">
+    <h2>Machine settings</h2>
+    <p class="muted small">Defaults match the Ortur Laser Master 2 Pro. Values marked $ are read from the controller when you connect.</p>
+    <div class="grid2">
+      <label><span>Work area width ($130)</span><div class="inline-num"><input type="number" name="bedW" min="10" step="1"><span class="u">mm</span></div></label>
+      <label><span>Work area height ($131)</span><div class="inline-num"><input type="number" name="bedH" min="10" step="1"><span class="u">mm</span></div></label>
+      <label><span>Max spindle value ($30)</span><input type="number" name="maxS" min="1" step="1"></label>
+      <label><span>Baud rate</span><select name="baud"><option>115200</option><option>250000</option><option>57600</option><option>9600</option></select></label>
+      <label><span>Rapid speed (estimates)</span><div class="inline-num"><input type="number" name="rapid" min="100" step="100"><span class="u">mm/min</span></div></label>
+      <label><span>Acceleration (estimates)</span><div class="inline-num"><input type="number" name="accel" min="100" step="100"><span class="u">mm/s²</span></div></label>
+      <label><span>Scan overscan</span><div class="inline-num"><input type="number" name="overscan" min="0" max="20" step="0.5"><span class="u">mm</span></div></label>
+      <label><span>Frame speed</span><div class="inline-num"><input type="number" name="frameSpeed" min="100" step="100"><span class="u">mm/min</span></div></label>
+      <label class="check"><input type="checkbox" name="frameLaser"> Fire laser at low power while framing</label>
+      <label><span>Frame power</span><div class="inline-num"><input type="number" name="framePower" min="0" max="5" step="0.5"><span class="u">%</span></div></label>
+    </div>
+    <div class="dlg-actions">
+      <button class="btn ghost" value="cancel">Cancel</button>
+      <button class="btn primary" value="ok">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgText" class="dlg">
+  <form method="dialog">
+    <h2 id="textTitle">Add text</h2>
+    <label class="field-v"><span class="lbl">Text</span><textarea name="text" rows="3" required></textarea></label>
+    <div class="grid2">
+      <label><span>Font</span><select name="font"></select></label>
+      <label><span>Size</span><div class="inline-num"><input type="number" name="size" min="1" max="300" step="0.5" value="10"><span class="u">mm</span></div></label>
+      <label class="check"><input type="checkbox" name="bold"> Bold</label>
+      <label class="check"><input type="checkbox" name="italic"> Italic</label>
+    </div>
+    <p class="muted small">Text is engraved as a fill. It goes on your first Fill layer.</p>
+    <div class="dlg-actions">
+      <button class="btn ghost" value="cancel">Cancel</button>
+      <button class="btn primary" value="ok">Place text</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgRun" class="dlg">
+  <form method="dialog">
+    <h2>Start laser job?</h2>
+    <div class="summary" id="runSummary"></div>
+    <div class="note warn">
+      <b>Safety check</b>
+      <ul>
+        <li>Everyone nearby is wearing laser safety glasses rated for 445 nm.</li>
+        <li>The laser is focused and the material is flat and secured.</li>
+        <li>You will stay with the machine for the whole job.</li>
+      </ul>
+    </div>
+    <div class="dlg-actions">
+      <button class="btn ghost" value="cancel">Cancel</button>
+      <button class="btn primary" value="ok"><svg class="icon"><use href="#i-play"/></svg><span>Start job</span></button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgConfirm" class="dlg narrow">
+  <form method="dialog">
+    <h2 id="cfTitle"></h2>
+    <p id="cfBody" class="muted"></p>
+    <div class="dlg-actions">
+      <button class="btn ghost" value="cancel">Cancel</button>
+      <button class="btn primary" id="cfOk" value="ok">OK</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<input type="file" id="fileImport" accept=".lac,.svg,.dxf,.png,.jpg,.jpeg,.bmp,.gif,.webp" multiple hidden>
+<input type="file" id="fileOpen" accept=".json,.kerf" hidden>
+
+<script src="js/geometry.js"></script>
+<script src="js/raster.js"></script>
+<script src="js/gcode.js"></script>
+<script src="js/grbl.js"></script>
+<script src="js/lac.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
