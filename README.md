@@ -3,6 +3,11 @@
 A clean, modern laser design and control app for the **Ortur Laser Master 2 Pro** (GRBL 1.1).
 It runs in Chrome or Edge, with nothing to install, and talks to the laser over USB through Web Serial.
 
+<img width="1260" height="1034" alt="image" src="https://github.com/user-attachments/assets/edadb67e-27d3-426e-aeec-2dae8fe08c83" />
+
+<img width="590" height="518" alt="image" src="https://github.com/user-attachments/assets/90acac8c-0bb7-4648-b652-9db8bf3eb93f" />
+
+
 ## Start it
 
 Double-click **`Start Kerf Studio.cmd`**. It serves the app on `http://localhost:8787` and opens it in Chrome or Edge.
