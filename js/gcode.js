@@ -17,12 +17,16 @@ window.Kerf = window.Kerf || {};
       this.lx = null; this.ly = null; this.f = null; this.s = null;
       this.time = 0; this.cutLen = 0;
       this.ox = o.ox; this.oy = o.oy;
+      // Machine origin offset: where the front-left of the work area sits in
+      // machine coordinates. Zero on firmware that homes to a forced origin.
+      this.mx = (o.offset && o.offset.x) || 0;
+      this.my = (o.offset && o.offset.y) || 0;
       this.rapidF = o.rapid; this.accel = o.accel; this.maxS = o.maxS;
       this.dx = 0; this.dy = 0;
     }
     emit(l) { this.lines.push(l); }
     _xy(x, y) {
-      const fx = fmt(x - this.ox), fy = fmt(y - this.oy);
+      const fx = fmt(x - this.ox + this.mx), fy = fmt(y - this.oy + this.my);
       let s = '';
       if (fx !== this.lx) s += ' X' + fx;
       if (fy !== this.ly) s += ' Y' + fy;
@@ -202,7 +206,13 @@ window.Kerf = window.Kerf || {};
     const bbox = G.unionBBox(objs);
     const current = opt.origin === 'current';
     const ox = current ? bbox.minx : 0, oy = current ? bbox.miny : 0;
-    const w = new Writer({ ox, oy, rapid: opt.rapid || 6000, accel: opt.accel || 2500, maxS: opt.maxS || 1000 });
+    // A job started from the current head position is emitted relative to a
+    // G92 zero set wherever the head already is, so the machine offset must
+    // not be added on top of it.
+    const offset = current
+      ? { x: 0, y: 0 }
+      : { x: (opt.offset && opt.offset.x) || 0, y: (opt.offset && opt.offset.y) || 0 };
+    const w = new Writer({ ox, oy, offset, rapid: opt.rapid || 6000, accel: opt.accel || 2500, maxS: opt.maxS || 1000 });
     const maxS = opt.maxS || 1000;
     const overscan = Math.max(0, opt.overscan ?? 2.5);
 
@@ -259,10 +269,14 @@ window.Kerf = window.Kerf || {};
     const laser = opt.frameLaser ? [`M3 S${Math.round(((opt.framePower || 1) / 100) * (opt.maxS || 1000))}`] : ['M5 S0'];
     const w = b.maxx - b.minx, h = b.maxy - b.miny;
     if (opt.origin === 'current') {
+      // Relative moves: the machine offset does not apply.
       return ['G21', 'G91', ...laser, `G1 X${fmt(w)} F${F}`, `G1 Y${fmt(h)}`, `G1 X${fmt(-w)}`, `G1 Y${fmt(-h)}`, 'M5 S0', 'G90'];
     }
-    return ['G21', 'G90', 'M5 S0', `G0 X${fmt(b.minx)} Y${fmt(b.miny)}`, ...laser,
-      `G1 X${fmt(b.maxx)} F${F}`, `G1 Y${fmt(b.maxy)}`, `G1 X${fmt(b.minx)}`, `G1 Y${fmt(b.miny)}`, 'M5 S0'];
+    const ox = (opt.offset && opt.offset.x) || 0, oy = (opt.offset && opt.offset.y) || 0;
+    const x0 = fmt(b.minx + ox), x1 = fmt(b.maxx + ox);
+    const y0 = fmt(b.miny + oy), y1 = fmt(b.maxy + oy);
+    return ['G21', 'G90', 'M5 S0', `G0 X${x0} Y${y0}`, ...laser,
+      `G1 X${x1} F${F}`, `G1 Y${y1}`, `G1 X${x0}`, `G1 Y${y0}`, 'M5 S0'];
   }
 
   K.gcode = { generate, frame, fmt };
