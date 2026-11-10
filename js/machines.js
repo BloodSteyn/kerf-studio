@@ -81,5 +81,94 @@ window.Kerf = window.Kerf || {};
     return { x: num(mpos && mpos[0], 0), y: num(mpos && mpos[1], 0) };
   }
 
-  K.machines = { BUILTIN, normalize, toMachine, fromMachine, offsetFor, calibrate };
+  // ---------------------------------------------------------------- storage
+  const KEY_PROFILES = 'kerf.machines';
+  const KEY_ACTIVE = 'kerf.machine';
+  const KEY_LEGACY = 'kerf.settings';
+  const KEY_MIGRATED = 'kerf.machinesMigrated';
+
+  // Fields a stored override may carry. Everything else (expect, suggest,
+  // builtin) always comes from code, so shipping a corrected default still
+  // reaches users who have edited the profile.
+  const OVERRIDE_FIELDS = ['name', 'bedW', 'bedH', 'maxS', 'baud', 'rapid', 'accel', 'originOffset', 'hasHoming'];
+
+  function stored(store) {
+    const v = store.get(KEY_PROFILES, []);
+    return Array.isArray(v) ? v : [];
+  }
+
+  function list(store) {
+    const saved = stored(store);
+    const out = BUILTIN.map(b => {
+      const o = saved.find(p => p && p.id === b.id);
+      if (!o) return normalize(b);
+      const merged = { ...b };
+      for (const f of OVERRIDE_FIELDS) if (f in o) merged[f] = o[f];
+      return normalize(merged);
+    });
+    for (const p of saved) {
+      if (p && !BUILTIN.some(b => b.id === p.id)) out.push(normalize({ ...p, builtin: false }));
+    }
+    return out;
+  }
+
+  function get(store, id) {
+    return list(store).find(p => p.id === id) || null;
+  }
+
+  function save(store, profile) {
+    const p = normalize(profile);
+    const saved = stored(store).filter(x => x && x.id !== p.id);
+    const row = { id: p.id };
+    for (const f of OVERRIDE_FIELDS) row[f] = p[f];
+    saved.push(row);
+    store.set(KEY_PROFILES, saved);
+    return p;
+  }
+
+  function remove(store, id) {
+    store.set(KEY_PROFILES, stored(store).filter(x => x && x.id !== id));
+    if (store.get(KEY_ACTIVE, null) === id && !BUILTIN.some(b => b.id === id)) {
+      store.set(KEY_ACTIVE, BUILTIN[0].id);
+    }
+  }
+
+  function active(store) {
+    const all = list(store);
+    return all.find(p => p.id === store.get(KEY_ACTIVE, null)) || all[0];
+  }
+
+  function setActive(store, id) {
+    store.set(KEY_ACTIVE, id);
+    return active(store);
+  }
+
+  // One-time adoption of the pre-profiles settings blob into the Ortur
+  // profile, so an existing install sees no change. Machine facts move across;
+  // preferences stay where they are.
+  function migrate(store) {
+    if (store.get(KEY_MIGRATED, false)) return;
+    store.set(KEY_MIGRATED, true);
+    const legacy = store.get(KEY_LEGACY, null);
+    if (!legacy || typeof legacy !== 'object') return;
+    const base = BUILTIN[0];
+    const merged = { ...base };
+    for (const f of ['bedW', 'bedH', 'maxS', 'baud', 'rapid', 'accel']) {
+      if (legacy[f] !== undefined) merged[f] = legacy[f];
+    }
+    save(store, merged);
+    if (store.get(KEY_ACTIVE, null) === null) store.set(KEY_ACTIVE, base.id);
+  }
+
+  function newId(store) {
+    const taken = new Set(list(store).map(p => p.id));
+    let n = 1;
+    while (taken.has('custom-' + n)) n++;
+    return 'custom-' + n;
+  }
+
+  K.machines = {
+    BUILTIN, normalize, toMachine, fromMachine, offsetFor, calibrate,
+    list, get, save, remove, active, setActive, migrate, newId,
+  };
 })(window.Kerf);
