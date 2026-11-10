@@ -91,10 +91,17 @@ the Ortur profile, with the stored values as overrides. Existing users see no ch
 It is `0,0` for the Ortur and for any firmware that forces the origin at home. It is
 `-bedW, -bedH` for stock-GRBL homing to the min corner.
 
-The offset is **measured, not configured**. A `Set origin from current position` button
-in the settings dialog reads `MPos` after a completed `$H`, subtracts the pull-off
-distance reported by `$27`, and stores the result. Reading the machine is reliable;
-reasoning about an unknown firmware build is not.
+The offset is **measured, not configured**. A `Set work origin to current position`
+button in the settings dialog stores the current `MPos` verbatim as the offset. The
+workflow is: home, jog the head to the front-left corner of the usable bed, click.
+
+Capturing `MPos` directly is deliberate. An earlier draft of this spec had the button
+subtract the `$27` pull-off from the post-homing `MPos`, but that formula is only correct
+for one of the two firmware conventions — under `HOMING_FORCE_SET_ORIGIN` it returns
+`-$27` where the correct answer is `0`. Capturing the position the operator has jogged to
+is firmware-agnostic, needs no knowledge of homing direction or pull-off, and works
+equally well if the operator wants design origin somewhere other than the bed corner.
+This is how LightBurn's user origin behaves, so it should also feel familiar.
 
 The transform applies at exactly two boundaries:
 
