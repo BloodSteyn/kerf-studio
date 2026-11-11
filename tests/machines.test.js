@@ -151,3 +151,35 @@ test('migrate is a no-op with no legacy settings', () => {
   M.migrate(s);
   assert.strictEqual(M.active(s).bedW, 400);
 });
+
+test('diff reports expected mismatches as required and suggestions as optional', () => {
+  const M = K().machines;
+  const a5 = M.BUILTIN.find(p => p.id === 'atomstack-a5');
+  const rows = M.diff(a5, { 22: 0, 23: 0, 20: 0, 21: 0, 130: 410 });
+  const byKey = Object.fromEntries(rows.map(r => [r.key, r]));
+  assert.strictEqual(byKey[22].required, true);
+  assert.strictEqual(byKey[22].machine, 0);
+  assert.strictEqual(byKey[22].want, 1);
+  assert.strictEqual(byKey[21].required, false);
+  assert.ok(byKey[21].risk, 'hard limits carry a stated risk');
+});
+
+test('diff omits values that already match', () => {
+  const M = K().machines;
+  const a5 = M.BUILTIN.find(p => p.id === 'atomstack-a5');
+  assert.strictEqual(M.diff(a5, { 22: 1, 23: 3, 20: 1, 21: 1 }).length, 0);
+});
+
+test('diff omits values the controller did not report', () => {
+  const M = K().machines;
+  const a5 = M.BUILTIN.find(p => p.id === 'atomstack-a5');
+  assert.strictEqual(M.diff(a5, {}).length, 0);
+});
+
+test('diff never proposes writing steps-per-mm', () => {
+  const M = K().machines;
+  const p = M.normalize({ id: 'x', name: 'X', expect: { 100: 80, 22: 1 } });
+  const rows = M.diff(p, { 100: 79.5, 22: 0 });
+  assert.ok(!rows.some(r => r.key === 100), 'calibration values are excluded');
+  assert.ok(rows.some(r => r.key === 22));
+});

@@ -33,8 +33,10 @@
     fill: { speed: 3000, power: 40, minPower: 0, passes: 1, interval: 0.1 },
     image: { speed: 3000, power: 50, minPower: 0, passes: 1, interval: 0.1 },
   };
+  // Preferences only. Machine facts (work area, max spindle, baud, rapid,
+  // acceleration) belong to the active machine profile, not here.
   const DEFAULT_SETTINGS = {
-    bedW: 400, bedH: 430, maxS: 1000, baud: 115200, rapid: 6000, accel: 2500, overscan: 2.5,
+    overscan: 2.5,
     frameSpeed: 3000, frameLaser: false, framePower: 1,
     jobOrigin: 'absolute', returnHome: true, jogFeed: 3000, jogStep: 10, lockAspect: true,
   };
@@ -50,6 +52,45 @@
   const assets = new Map(); // id -> { src, img }
   const imgCache = new Map();
   const saveSettings = () => store.set('kerf.settings', S.settings);
+
+  // ---------------------------------------------------------------- machine
+  const MA = K.machines;
+  MA.migrate(store);
+  S.machine = MA.active(store);
+
+  // Machine facts are read through the active profile so there is one source
+  // of truth. These two are used often enough to deserve shorthands.
+  const bedW = () => S.machine.bedW;
+  const bedH = () => S.machine.bedH;
+
+  // Machine position in design space. The canvas, the readout and the status
+  // bar all show where the head is on the bed, not its raw machine coordinate.
+  function headPos() {
+    const m = grbl.status.mpos;
+    return MA.fromMachine(S.machine, m[0] || 0, m[1] || 0);
+  }
+
+  function setMachine(id) {
+    S.machine = MA.setActive(store, id);
+    applyMachine();
+  }
+  function saveMachine(patch) {
+    S.machine = MA.save(store, { ...S.machine, ...patch });
+    applyMachine();
+  }
+  function applyMachine() {
+    const sel = $('#machineTag');
+    if (sel) {
+      sel.innerHTML = MA.list(store)
+        .map(p => `<option value="${esc(p.id)}"${p.id === S.machine.id ? ' selected' : ''}>${esc(p.name)}</option>`)
+        .join('') + '<option value="__add">Add machine…</option><option value="__dup">Duplicate current…</option>';
+    }
+    const home = $('#btnHome');
+    if (home) home.hidden = !S.machine.hasHoming;
+    invalidatePreview();
+    fitBed();
+    requestDraw();
+  }
 
   // ---------------------------------------------------------------- layers
   const layerById = id => S.layers.find(l => l.id === id);
@@ -204,11 +245,11 @@
     requestDraw();
   }
   function fitBed() {
-    const { bedW, bedH } = S.settings;
+    const bedWv = bedW(), bedHv = bedH();
     const pad = 48;
-    view.scale = Math.max(0.05, Math.min((view.w - pad * 2) / bedW, (view.h - pad * 2) / bedH));
-    view.ox = (view.w - bedW * view.scale) / 2 + 8;
-    view.oy = (view.h + bedH * view.scale) / 2 - 4;
+    view.scale = Math.max(0.05, Math.min((view.w - pad * 2) / bedWv, (view.h - pad * 2) / bedHv));
+    view.ox = (view.w - bedWv * view.scale) / 2 + 8;
+    view.oy = (view.h + bedHv * view.scale) / 2 - 4;
     updateZoomLabel();
     requestDraw();
   }
@@ -221,7 +262,7 @@
     requestDraw();
   }
   function updateZoomLabel() {
-    const base = Math.min((view.w - 96) / S.settings.bedW, (view.h - 96) / S.settings.bedH);
+    const base = Math.min((view.w - 96) / bedW(), (view.h - 96) / bedH());
     $('#zoomLabel').textContent = Math.round((view.scale / base) * 100) + '%';
   }
 
@@ -238,14 +279,14 @@
   }
 
   function draw() {
-    const { bedW, bedH } = S.settings;
+    const bedWv = bedW(), bedHv = bedH();
     ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
     ctx.fillStyle = colors.bg;
     ctx.fillRect(0, 0, view.w, view.h);
 
     // bed + grid
-    const [bx, by] = w2s(0, bedH);
-    const bw = bedW * view.scale, bh = bedH * view.scale;
+    const [bx, by] = w2s(0, bedHv);
+    const bw = bedWv * view.scale, bh = bedHv * view.scale;
     ctx.save();
     ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 6;
     ctx.fillStyle = colors.bed;
@@ -256,8 +297,8 @@
     const minor = niceStep(9), major = niceStep(60);
     for (const [step, col] of [[minor, colors.grid], [major, colors.major]]) {
       ctx.beginPath();
-      for (let x = 0; x <= bedW + 1e-6; x += step) { const sx = Math.round(view.ox + x * view.scale) + 0.5; ctx.moveTo(sx, by); ctx.lineTo(sx, by + bh); }
-      for (let y = 0; y <= bedH + 1e-6; y += step) { const sy = Math.round(view.oy - y * view.scale) + 0.5; ctx.moveTo(bx, sy); ctx.lineTo(bx + bw, sy); }
+      for (let x = 0; x <= bedWv + 1e-6; x += step) { const sx = Math.round(view.ox + x * view.scale) + 0.5; ctx.moveTo(sx, by); ctx.lineTo(sx, by + bh); }
+      for (let y = 0; y <= bedHv + 1e-6; y += step) { const sy = Math.round(view.oy - y * view.scale) + 0.5; ctx.moveTo(bx, sy); ctx.lineTo(bx + bw, sy); }
       ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.stroke();
     }
     ctx.restore();
@@ -268,9 +309,9 @@
     ctx.fillStyle = colors.ruler;
     ctx.font = '10px ' + getComputedStyle(document.body).getPropertyValue('--mono');
     ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    for (let x = 0; x <= bedW + 1e-6; x += major) ctx.fillText(String(x), view.ox + x * view.scale, by + bh + 6);
+    for (let x = 0; x <= bedWv + 1e-6; x += major) ctx.fillText(String(x), view.ox + x * view.scale, by + bh + 6);
     ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
-    for (let y = 0; y <= bedH + 1e-6; y += major) ctx.fillText(String(y), bx - 6, view.oy - y * view.scale);
+    for (let y = 0; y <= bedHv + 1e-6; y += major) ctx.fillText(String(y), bx - 6, view.oy - y * view.scale);
 
     // objects
     const dim = S.previewOn && S.preview && !S.preview.empty;
@@ -306,7 +347,8 @@
 
     // laser head
     if (grbl.connected) {
-      const [hx, hy] = w2s(grbl.status.mpos[0], grbl.status.mpos[1]);
+      const hp = headPos();
+      const [hx, hy] = w2s(hp.x, hp.y);
       ctx.save();
       ctx.strokeStyle = '#ff3b30'; ctx.fillStyle = 'rgba(255,59,48,.18)'; ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.arc(hx, hy, 9, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
@@ -661,7 +703,7 @@
   function centerSel() {
     const b = selBBox();
     if (!b) return;
-    moveSel(S.settings.bedW / 2 - (b.minx + b.maxx) / 2, S.settings.bedH / 2 - (b.miny + b.maxy) / 2);
+    moveSel(bedW() / 2 - (b.minx + b.maxx) / 2, bedH() / 2 - (b.miny + b.maxy) / 2);
     commit(); requestDraw();
   }
 
@@ -847,8 +889,10 @@
   function jobOptions() {
     const s = S.settings;
     return {
-      maxS: s.maxS, rapid: s.rapid, accel: s.accel, overscan: s.overscan,
-      origin: s.jobOrigin, returnHome: s.returnHome, machineName: 'Ortur Laser Master 2 Pro (GRBL 1.1)',
+      maxS: S.machine.maxS, rapid: S.machine.rapid, accel: S.machine.accel, overscan: s.overscan,
+      origin: s.jobOrigin, returnHome: s.returnHome,
+      machineName: `${S.machine.name} (GRBL 1.1)`,
+      offset: MA.offsetFor(S.machine, s.jobOrigin),
       frameSpeed: s.frameSpeed, frameLaser: s.frameLaser, framePower: s.framePower,
     };
   }
@@ -877,7 +921,7 @@
       return;
     }
     const b = P.bbox;
-    const outside = b.minx < -0.01 || b.miny < -0.01 || b.maxx > S.settings.bedW + 0.01 || b.maxy > S.settings.bedH + 0.01;
+    const outside = b.minx < -0.01 || b.miny < -0.01 || b.maxx > bedW() + 0.01 || b.maxy > bedH() + 0.01;
     out.className = 'est';
     out.innerHTML = `
       <span>Estimated time</span><b>${fmtTime(P.time)}</b>
@@ -943,7 +987,7 @@
     else r.readAsText(file);
   });
 
-  // Bambu Suite processes -> Kerf layers with conservative Ortur LM2 Pro starting values.
+  // Bambu Suite processes -> Kerf layers with conservative starting values.
   // Listed in burn order: engrave first, cut last.
   const LAC_PROCESS = {
     LaserImageEngrave: { mode: 'image', name: 'Engrave (image)', speed: 3000, power: 50, passes: 1 },
@@ -989,7 +1033,7 @@
       });
     }
     const b = G.unionBBox(objs);
-    const dx = S.settings.bedW / 2 - (b.minx + b.maxx) / 2, dy = S.settings.bedH / 2 - (b.miny + b.maxy) / 2;
+    const dx = bedW() / 2 - (b.minx + b.maxx) / 2, dy = bedH() / 2 - (b.miny + b.maxy) / 2;
     for (const o of objs) { o.x += dx; o.y += dy; }
     S.objects.push(...objs);
     S.sel = new Set(objs.map(o => o.id));
@@ -998,9 +1042,9 @@
 
     const label = res.title ? `"${res.title}"${res.designer ? ' by ' + res.designer : ''}` : fileName;
     toast(`Imported ${label} · ${f2(b.maxx - b.minx)} × ${f2(b.maxy - b.miny)} mm`, 'ok', 5000);
-    toast('Bambu power and speed settings were replaced with Ortur starting values. Test on scrap first.', 'warn', 9000);
-    if (b.maxx - b.minx > S.settings.bedW || b.maxy - b.miny > S.settings.bedH) {
-      toast(`The design is larger than your ${S.settings.bedW} × ${S.settings.bedH} mm work area. Rearrange pieces or burn them in batches.`, 'warn', 10000);
+    toast(`Bambu power and speed settings were replaced with ${S.machine.name} starting values. Test on scrap first.`, 'warn', 9000);
+    if (b.maxx - b.minx > bedW() || b.maxy - b.miny > bedH()) {
+      toast(`The design is larger than your ${bedW()} × ${bedH()} mm work area. Rearrange pieces or burn them in batches.`, 'warn', 10000);
     }
     for (const w of res.warnings) toast(w, 'warn', 7000);
   }
@@ -1024,11 +1068,11 @@
         const img = assets.get(id).img;
         const ar = img.naturalHeight / img.naturalWidth;
         let w = Math.min(120, (img.naturalWidth * 25.4) / 96), h = w * ar;
-        if (h > S.settings.bedH * 0.8) { h = S.settings.bedH * 0.8; w = h / ar; }
+        if (h > bedH() * 0.8) { h = bedH() * 0.8; w = h / ar; }
         const layer = layerForMode('image');
         const o = {
           id: uid(), type: 'image', asset: id, layer: layer.id, rot: 0, name: file.name,
-          x: (S.settings.bedW - w) / 2, y: (S.settings.bedH - h) / 2, w, h,
+          x: (bedW() - w) / 2, y: (bedH() - h) / 2, w, h,
           image: { dither: 'jarvis', invert: false, brightness: 0, contrast: 0 },
         };
         S.objects.push(o);
@@ -1053,7 +1097,7 @@
     }
     if (!objs.length) { toast('No vector shapes found in that file.', 'warn'); return; }
     const b = G.unionBBox(objs);
-    const dx = S.settings.bedW / 2 - (b.minx + b.maxx) / 2, dy = S.settings.bedH / 2 - (b.miny + b.maxy) / 2;
+    const dx = bedW() / 2 - (b.minx + b.maxx) / 2, dy = bedH() / 2 - (b.miny + b.maxy) / 2;
     for (const o of objs) { o.x += dx; o.y += dy; }
     S.objects.push(...objs);
     S.sel = new Set(objs.map(o => o.id));
@@ -1100,10 +1144,11 @@
       btn.querySelector('span').textContent = grbl.connected ? 'Disconnect' : 'Connect';
       $$('.mc').forEach(el => { el.disabled = !grbl.connected; });
       if (grbl.connected) {
-        $('#posX').textContent = f2(st.mpos[0]);
-        $('#posY').textContent = f2(st.mpos[1]);
+        const hp = headPos();
+        $('#posX').textContent = f2(hp.x);
+        $('#posY').textContent = f2(hp.y);
         $('#fsInfo').textContent = `Feed ${Math.round(st.feed)} mm/min · Power S${Math.round(st.power)}`;
-        $('#sbMachine').textContent = `${label} · X ${f2(st.mpos[0])} Y ${f2(st.mpos[1])}`;
+        $('#sbMachine').textContent = `${label} · X ${f2(hp.x)} Y ${f2(hp.y)}`;
       } else {
         $('#posX').textContent = '—'; $('#posY').textContent = '—';
         $('#fsInfo').textContent = 'Connect your laser over USB to begin.';
@@ -1169,23 +1214,57 @@
   grbl.addEventListener('jobDone', e => jobEnded(`Job finished in ${fmtTime(e.detail.elapsed)}`, 'ok'));
   grbl.addEventListener('jobAborted', e => jobEnded(`Job stopped: ${e.detail.reason}`, 'warn'));
 
-  function applyMachineSettings() {
+  async function applyMachineSettings() {
     const r = settingsRead;
     settingsRead = null;
     if (!r || !Object.keys(r).length) return;
-    const s = S.settings;
+    const m = S.machine;
+    const patch = {};
     const msgs = [];
-    if (r[30] > 0 && r[30] !== s.maxS) { s.maxS = r[30]; msgs.push(`S-max ${r[30]}`); }
-    if (r[130] > 0 && r[131] > 0 && (r[130] !== s.bedW || r[131] !== s.bedH)) {
-      s.bedW = r[130]; s.bedH = r[131]; msgs.push(`work area ${r[130]} × ${r[131]} mm`);
-      fitBed();
+    if (r[30] > 0 && r[30] !== m.maxS) { patch.maxS = r[30]; msgs.push(`S-max ${r[30]}`); }
+    if (r[130] > 0 && r[131] > 0 && (r[130] !== m.bedW || r[131] !== m.bedH)) {
+      patch.bedW = r[130]; patch.bedH = r[131];
+      msgs.push(`work area ${r[130]} × ${r[131]} mm`);
     }
-    if (r[110] > 0 && r[111] > 0) s.rapid = Math.min(r[110], r[111]);
-    if (r[120] > 0 && r[121] > 0) s.accel = Math.min(r[120], r[121]);
-    saveSettings();
-    invalidatePreview();
+    if (r[110] > 0 && r[111] > 0) patch.rapid = Math.min(r[110], r[111]);
+    if (r[120] > 0 && r[121] > 0) patch.accel = Math.min(r[120], r[121]);
+    if (Object.keys(patch).length) saveMachine(patch);   // also refits the bed
     if (msgs.length) toast('Read from controller: ' + msgs.join(', '), 'info', 5000);
     if (r[32] === 0) toast('Laser mode is off ($32=0). Send $32=1 from the Console before burning.', 'warn', 9000);
+    if (S.machine.hasHoming && r[22] === 0) {
+      toast('Homing is disabled on this controller ($22=0). Home will alarm until it is enabled.', 'warn', 9000);
+    }
+    await reconcileSettings(r);
+  }
+
+  // Offer to bring the controller in line with the profile. Nothing is ever
+  // written without a tick, and the old value is logged first so it can be
+  // put back by hand.
+  async function reconcileSettings(read) {
+    const rows = MA.diff(S.machine, read);
+    if (!rows.length) return;
+    $('#reconcileRows').innerHTML = rows.map(r => `
+      <label class="check recon-row">
+        <input type="checkbox" name="w${r.key}"${r.required ? ' checked' : ''}>
+        <span><b>$${r.key}</b> ${esc(r.name)} — machine <b>${r.machine}</b>, profile wants <b>${r.want}</b>
+        ${r.required ? '<em class="req">required</em>' : ''}
+        ${r.risk ? `<small class="muted">${esc(r.risk)}</small>` : ''}</span>
+      </label>`).join('');
+    if (!(await openDialog($('#dlgReconcile')))) return;
+
+    const writes = rows.filter(r => {
+      const el = $(`#reconcileRows [name="w${r.key}"]`);
+      return el && el.checked;
+    });
+    for (const r of writes) {
+      grbl._log('info', `Changing $${r.key} (${r.name}) from ${r.machine} to ${r.want} — previous value was ${r.machine}`);
+      grbl.send(`$${r.key}=${r.want}`);
+    }
+    if (!writes.length) return;
+    toast(`Wrote ${writes.length} setting${writes.length === 1 ? '' : 's'}. Previous values are in the console.`, 'ok', 8000);
+    if (writes.some(r => r.key === 22 || r.key === 23)) {
+      toast('Homing settings changed. Jog clear of the switches before you run Home.', 'warn', 10000);
+    }
   }
 
   async function toggleConnect() {
@@ -1197,7 +1276,7 @@
       return;
     }
     try {
-      await grbl.connect(+S.settings.baud);
+      await grbl.connect(+S.machine.baud);
     } catch (e) {
       if (e.name !== 'NotFoundError') toast('Could not open the port: ' + e.message, 'error', 6000);
       try { await grbl.disconnect(); } catch (err) { /* ignore */ }
@@ -1219,7 +1298,7 @@
     const P = buildJob();
     if (P.empty) { toast('Nothing to burn. Add objects to a layer with output on.', 'warn'); return; }
     const b = P.bbox, s = S.settings;
-    const outside = s.jobOrigin === 'absolute' && (b.minx < -0.01 || b.miny < -0.01 || b.maxx > s.bedW + 0.01 || b.maxy > s.bedH + 0.01);
+    const outside = s.jobOrigin === 'absolute' && (b.minx < -0.01 || b.miny < -0.01 || b.maxx > bedW() + 0.01 || b.maxy > bedH() + 0.01);
     const used = S.layers.filter(l => l.output && S.objects.some(o => o.layer === l.id));
     $('#runSummary').innerHTML = `
       <span>Estimated time</span><b>${fmtTime(P.time)}</b>
@@ -1282,7 +1361,11 @@
     assignLayer: () => { const l = currentLayer(); for (const o of selected()) o.layer = l.id; commit(); requestDraw(); },
     home: () => { if (grbl.connected) grbl.send('$H'); },
     unlock: () => { if (grbl.connected) grbl.send('$X'); },
-    goOrigin: () => { if (requireIdle('move')) grbl.send('G90 G0 X0 Y0'); },
+    goOrigin: () => {
+      if (!requireIdle('move')) return;
+      const o = S.machine.originOffset;   // design 0,0 in machine coordinates
+      grbl.send(`G90 G0 X${GC.fmt(o.x)} Y${GC.fmt(o.y)}`);
+    },
     frame: () => {
       if (!requireIdle('frame')) return;
       const b = jobBBox();
@@ -1329,6 +1412,14 @@
   $('#jobOrigin').addEventListener('change', e => { S.settings.jobOrigin = e.target.value; saveSettings(); invalidatePreview(); });
   $('#returnHome').addEventListener('change', e => { S.settings.returnHome = e.target.checked; saveSettings(); invalidatePreview(); });
 
+  $('#machineTag').addEventListener('change', async e => {
+    const v = e.target.value;
+    if (v === '__add' || v === '__dup') { await addMachine(v === '__dup'); return; }
+    setMachine(v);
+    toast(`Switched to ${S.machine.name}`, 'info');
+  });
+  $('#btnCalibrateOrigin').addEventListener('click', calibrateOrigin);
+
   // console input with history
   const cmdHist = [];
   let cmdIdx = 0;
@@ -1348,23 +1439,64 @@
   });
 
   // settings dialog
+  // Machine facts belong to the profile; everything else is a preference.
+  const MACHINE_FIELDS = ['bedW', 'bedH', 'maxS', 'baud', 'rapid', 'accel'];
+
   async function openSettings() {
-    const f = $('#dlgSettings form');
+    const f = $('#dlgSettings form'), m = S.machine;
+    f.machineName.value = m.name;
+    f.hasHoming.checked = m.hasHoming;
+    for (const k of MACHINE_FIELDS) f[k].value = m[k];
+    f.offX.value = m.originOffset.x;
+    f.offY.value = m.originOffset.y;
     for (const el of f.elements) {
-      if (!el.name) continue;
+      if (!el.name || el.name === 'machineName' || el.name === 'hasHoming'
+        || el.name === 'offX' || el.name === 'offY' || MACHINE_FIELDS.includes(el.name)) continue;
       if (el.type === 'checkbox') el.checked = !!S.settings[el.name];
       else el.value = S.settings[el.name];
     }
+
     if (!(await openDialog($('#dlgSettings')))) return;
+
+    const patch = {
+      name: f.machineName.value.trim() || m.name,
+      hasHoming: f.hasHoming.checked,
+      originOffset: { x: parseFloat(f.offX.value) || 0, y: parseFloat(f.offY.value) || 0 },
+    };
+    for (const k of MACHINE_FIELDS) {
+      const v = parseFloat(f[k].value);
+      if (isFinite(v) && v > 0) patch[k] = v;
+    }
     for (const el of f.elements) {
-      if (!el.name) continue;
+      if (!el.name || el.name === 'machineName' || el.name === 'hasHoming'
+        || el.name === 'offX' || el.name === 'offY' || MACHINE_FIELDS.includes(el.name)) continue;
       if (el.type === 'checkbox') S.settings[el.name] = el.checked;
       else { const v = parseFloat(el.value); if (isFinite(v) && v >= 0) S.settings[el.name] = v; }
     }
     S.settings.framePower = clamp(S.settings.framePower, 0, 5);
     saveSettings();
-    fitBed(); invalidatePreview();
+    saveMachine(patch);          // applyMachine() refits the bed and redraws
     toast('Settings saved', 'ok');
+  }
+
+  // Capturing MPos verbatim works on any firmware and any homing corner:
+  // home, jog to the corner you want as design origin, then click.
+  function calibrateOrigin() {
+    if (!grbl.connected) { toast('Connect the laser first.', 'warn'); return; }
+    const o = MA.calibrate(S.machine, grbl.status.mpos);
+    const f = $('#dlgSettings form');
+    f.offX.value = f2(o.x);
+    f.offY.value = f2(o.y);
+    toast(`Work origin set to X ${f2(o.x)} Y ${f2(o.y)}. Save to keep it.`, 'ok', 6000);
+  }
+
+  async function addMachine(duplicate) {
+    const base = duplicate ? S.machine : MA.normalize({ id: '', name: '' });
+    const name = prompt('Name for the new machine', duplicate ? S.machine.name + ' copy' : 'My laser');
+    if (!name) { applyMachine(); return; }
+    const p = MA.save(store, { ...base, id: MA.newId(store), name, builtin: false });
+    setMachine(p.id);
+    await openSettings();
   }
 
   function setTheme(t) {
@@ -1426,6 +1558,7 @@
     if (!theme) theme = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
     setTheme(theme);
     $('#serialWarn').hidden = grbl.supported;
+    applyMachine();
     syncMachineInputs();
     new ResizeObserver(() => { const first = !view.w; resize(); if (first) fitBed(); }).observe(stage);
     const saved = store.get('kerf.project', null);

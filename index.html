@@ -57,7 +57,7 @@
     <div class="brand">
       <div class="logo"><svg class="icon"><use href="#i-zap"/></svg></div>
       <div class="brand-text"><b>Kerf</b><span>Studio</span></div>
-      <span class="machine-tag" id="machineTag">Ortur LM2 Pro</span>
+      <select class="machine-tag" id="machineTag" title="Active machine"></select>
     </div>
     <div class="tb-group">
       <button class="btn ghost" data-act="new" title="New project"><svg class="icon"><use href="#i-new"/></svg></button>
@@ -189,7 +189,7 @@
           </div>
         </div>
         <div class="btn-row">
-          <button class="btn mc" data-act="home"><svg class="icon"><use href="#i-home"/></svg><span>Home</span></button>
+          <button class="btn mc" id="btnHome" data-act="home"><svg class="icon"><use href="#i-home"/></svg><span>Home</span></button>
           <button class="btn mc" data-act="unlock"><svg class="icon"><use href="#i-unlock"/></svg><span>Unlock</span></button>
         </div>
       </div>
@@ -244,12 +244,16 @@
 <dialog id="dlgSettings" class="dlg">
   <form method="dialog">
     <h2>Machine settings</h2>
-    <p class="muted small">Defaults match the Ortur Laser Master 2 Pro. Values marked $ are read from the controller when you connect.</p>
+    <p class="muted small">These describe the machine itself and are saved with the machine selected in the header. Values marked $ are read from the controller when you connect.</p>
     <div class="grid2">
+      <label><span>Machine name</span><input type="text" name="machineName" required></label>
+      <label class="check"><input type="checkbox" name="hasHoming"> This machine has homing switches</label>
       <label><span>Work area width ($130)</span><div class="inline-num"><input type="number" name="bedW" min="10" step="1"><span class="u">mm</span></div></label>
       <label><span>Work area height ($131)</span><div class="inline-num"><input type="number" name="bedH" min="10" step="1"><span class="u">mm</span></div></label>
       <label><span>Max spindle value ($30)</span><input type="number" name="maxS" min="1" step="1"></label>
       <label><span>Baud rate</span><select name="baud"><option>115200</option><option>250000</option><option>57600</option><option>9600</option></select></label>
+      <label><span>Work origin X</span><div class="inline-num"><input type="number" name="offX" step="0.001"><span class="u">mm</span></div></label>
+      <label><span>Work origin Y</span><div class="inline-num"><input type="number" name="offY" step="0.001"><span class="u">mm</span></div></label>
       <label><span>Rapid speed (estimates)</span><div class="inline-num"><input type="number" name="rapid" min="100" step="100"><span class="u">mm/min</span></div></label>
       <label><span>Acceleration (estimates)</span><div class="inline-num"><input type="number" name="accel" min="100" step="100"><span class="u">mm/s²</span></div></label>
       <label><span>Scan overscan</span><div class="inline-num"><input type="number" name="overscan" min="0" max="20" step="0.5"><span class="u">mm</span></div></label>
@@ -257,9 +261,25 @@
       <label class="check"><input type="checkbox" name="frameLaser"> Fire laser at low power while framing</label>
       <label><span>Frame power</span><div class="inline-num"><input type="number" name="framePower" min="0" max="5" step="0.5"><span class="u">%</span></div></label>
     </div>
+    <p class="muted small">Work origin is the machine coordinate of the front-left of your bed. It is 0, 0 on most laser firmware. If your machine homes to negative coordinates, home it, jog the head to the front-left corner, then use the button below.</p>
+    <div class="dlg-actions start">
+      <button type="button" class="btn ghost" id="btnCalibrateOrigin">Set work origin to current position</button>
+    </div>
     <div class="dlg-actions">
       <button class="btn ghost" value="cancel">Cancel</button>
       <button class="btn primary" value="ok">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgReconcile" class="dlg">
+  <form method="dialog">
+    <h2>Controller settings differ</h2>
+    <p class="muted small">Your machine reports values that do not match this profile. Nothing is written unless you tick it, and the previous value is logged to the Console first so you can put it back.</p>
+    <div id="reconcileRows" class="recon-rows"></div>
+    <div class="dlg-actions">
+      <button class="btn ghost" value="cancel">Leave machine as it is</button>
+      <button class="btn primary" value="ok">Write ticked values</button>
     </div>
   </form>
 </dialog>
@@ -316,6 +336,7 @@
 <input type="file" id="fileImport" accept=".lac,.svg,.dxf,.png,.jpg,.jpeg,.bmp,.gif,.webp" multiple hidden>
 <input type="file" id="fileOpen" accept=".json,.kerf" hidden>
 
+<script src="js/machines.js"></script>
 <script src="js/geometry.js"></script>
 <script src="js/raster.js"></script>
 <script src="js/gcode.js"></script>

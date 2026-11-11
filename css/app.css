@@ -129,9 +129,13 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .brand-text b { font-weight: 700; }
 .brand-text span { color: var(--muted); font-weight: 500; }
 .machine-tag {
-  font-size: 11px; color: var(--muted);
+  font-size: 11px; color: var(--text);
   padding: 3px 8px; border-radius: 999px; border: 1px solid var(--border);
+  appearance: none; background: var(--panel-2); font-family: inherit;
+  max-width: 190px; cursor: pointer;
 }
+.machine-tag:hover { border-color: var(--accent); }
+.machine-tag:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .tb-group { display: flex; align-items: center; gap: 2px; }
 .conn {
   display: flex; align-items: center; gap: 8px;
@@ -386,6 +390,15 @@ select { padding-right: 4px; cursor: pointer; }
 .grid2 .inline-num input { width: 100%; }
 .grid2 .inline-num { width: 100%; }
 .dlg-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.dlg-actions.start { justify-content: flex-start; margin-bottom: 4px; }
+.recon-rows { display: grid; gap: 10px; margin: 12px 0; }
+.recon-row { align-items: flex-start; }
+.recon-row small { display: block; margin-top: 3px; line-height: 1.4; }
+.recon-row .req {
+  font-style: normal; font-size: 11px; margin-left: 6px;
+  padding: 1px 6px; border-radius: 999px;
+  background: var(--danger); color: #fff;
+}
 .summary { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: 13px; }
 .summary span { color: var(--muted); }
 .summary b { font-family: var(--mono); font-weight: 600; }

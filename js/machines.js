@@ -81,6 +81,43 @@ window.Kerf = window.Kerf || {};
     return { x: num(mpos && mpos[0], 0), y: num(mpos && mpos[1], 0) };
   }
 
+  // ------------------------------------------------- controller reconcile
+  const SETTING_NAMES = {
+    20: 'Soft limits', 21: 'Hard limits', 22: 'Homing cycle', 23: 'Homing direction mask',
+    24: 'Homing feed', 25: 'Homing seek', 26: 'Homing debounce', 27: 'Homing pull-off',
+    30: 'Max spindle value', 31: 'Min spindle value', 32: 'Laser mode',
+    130: 'X max travel', 131: 'Y max travel',
+  };
+
+  const RISK = {
+    21: 'Hard limits will halt a job if the switch wiring picks up interference from the stepper cables.',
+    20: 'Soft limits only protect you if the work area values are accurate.',
+  };
+
+  // Steps-per-mm is calibration, not configuration. Rewriting it silently
+  // destroys dimensional accuracy, so it is never offered.
+  const NEVER_WRITE = new Set([100, 101, 102]);
+
+  function diff(profile, machineSettings) {
+    const rows = [];
+    const seen = new Set();
+    const add = (key, want, required) => {
+      const k = +key;
+      if (NEVER_WRITE.has(k) || seen.has(k)) return;
+      const machine = machineSettings[k];
+      if (machine === undefined || machine === want) return;
+      seen.add(k);
+      rows.push({
+        key: k, want, machine, required,
+        name: SETTING_NAMES[k] || ('$' + k),
+        risk: RISK[k] || null,
+      });
+    };
+    for (const k of Object.keys(profile.expect || {})) add(k, profile.expect[k], true);
+    for (const k of Object.keys(profile.suggest || {})) add(k, profile.suggest[k], false);
+    return rows;
+  }
+
   // ---------------------------------------------------------------- storage
   const KEY_PROFILES = 'kerf.machines';
   const KEY_ACTIVE = 'kerf.machine';
@@ -170,5 +207,6 @@ window.Kerf = window.Kerf || {};
   K.machines = {
     BUILTIN, normalize, toMachine, fromMachine, offsetFor, calibrate,
     list, get, save, remove, active, setActive, migrate, newId,
+    diff, SETTING_NAMES,
   };
 })(window.Kerf);
