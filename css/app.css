@@ -397,7 +397,8 @@ select { padding-right: 4px; cursor: pointer; }
 .recon-row .req {
   font-style: normal; font-size: 11px; margin-left: 6px;
   padding: 1px 6px; border-radius: 999px;
-  background: var(--danger); color: #fff;
+  background: transparent; color: var(--danger);
+  border: 1px solid color-mix(in srgb, var(--danger) 55%, transparent);
 }
 .summary { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; font-size: 13px; }
 .summary span { color: var(--muted); }
